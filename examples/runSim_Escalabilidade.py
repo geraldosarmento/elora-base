@@ -9,27 +9,24 @@ import time
 import json
 
 
-
 rootPath = "scratch/output/"
-numRep = 5
+numRep = 4
 numED = [200,400,600,800,1000]
 #numED = [600,800]
-raio = 5000
+raio = 6000
 adrDic = {"ns3::AdrLorawan":"ADR", "ns3::AdrPlus":"ADR+"}
+#adrDic = {"ns3::AdrLorawan":"ADR", "ns3::AdrPlus":"ADR+", "ns3::AdrCentral":"ADR-C", "ns3::AdrCentralPlus":"ADR-C+"}
 
 
-#mobileProb = [0, 0.9]
 # Lista genérica usada para testar diversos modelos dentro da simulação
 cenarios = ["true", "false"]
 #cenarios = ["true"]
 
-#mediaED = {}
-#arquivos = []
+
 amostras = []
 dfED = pd.DataFrame()
 ultimaChave = list(adrDic.keys())[-1]
-#primeiraChave = list(adrDic.keys())[0]
-pivot = 0
+pivot = 0  #controla as linhas do DF
 
 def executarSim(): 
     global mediaED, dfED
@@ -45,14 +42,13 @@ def executarSim():
                     print("=============================================================")
                     print("Executando esquema #",esq,". Rodada #",rodCont," de ",len(numED)*len(adrDic)*numRep*len(cenarios))
                     print("=============================================================")
-                    cmd = f"./ns3 run \"littoral  --adrType={esq} --nED={eds} --radius={raio} --EDadrEnabled={cen}\" --quiet"
-                    # --confMode={cen} --baseSeed={ensCont} --mobileProb={m} --EDadrEnabled={cen}
+                    cmd = f"./ns3 run \"littoral  --adrType={esq} --nED={eds} --radius={raio} --mobility={cen}\" --quiet"
+                    # --confMode={cen} --baseSeed={ensCont} --EDadrEnabled={cen} --okumura={cen}
                     # Sample: ./ns3 run "littoral --adrType=ns3::AdrPlus"
                     # exec(open('/opt/simuladores/ns-allinone-3.40-ELORA/ns-3.40/contrib/elora/examples/runSim_Escalabilidade.py').read())
                     os.system(cmd)
 
-                    rodCont += 1
-                    
+                    rodCont += 1                    
                     atualizarDados(esq,rodCont)                              
         plotarGrafico(cen)  
         reiniciarDF() 
@@ -86,8 +82,6 @@ def reiniciarDF():
     for esq in adrDic.keys():
         dfED[adrDic[esq]] = None
     pivot = 0
-
-    #print(dfED)
 
 
 # Recebe o nome de um ensaio e uma determinada iteração do experimento
@@ -159,10 +153,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
-
-
-
-
-

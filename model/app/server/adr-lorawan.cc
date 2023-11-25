@@ -76,7 +76,7 @@ AdrLorawan::GetTypeId()
                           MakeBooleanChecker())
             .AddAttribute("SNRDeviceMargin",
                           "Additional SNR margin needed to decrease SF/TxPower",
-                          DoubleValue(10.0),
+                          DoubleValue(5.0),
                           MakeDoubleAccessor(&AdrLorawan::m_deviceMargin),
                           MakeDoubleChecker<double>())
             .AddAttribute("RawSNRFactor",

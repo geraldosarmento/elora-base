@@ -12,7 +12,9 @@ set(source_files
     model/app/server/adr-lorawan.cc
     model/app/server/adr-plus.cc
     model/app/server/adr-gaussian.cc
-    model/app/server/adr-ema.cc    
+    model/app/server/adr-ema.cc
+    model/app/server/adr-central.cc
+    model/app/server/adr-central-plus.cc   
     model/app/forwarder.cc
     model/app/udp-forwarder.cc
     model/app/lora-application.cc
@@ -81,7 +83,9 @@ set(header_files
     model/app/server/adr-lorawan.h
     model/app/server/adr-plus.h   
     model/app/server/adr-gaussian.h
-    model/app/server/adr-ema.h
+    model/app/server/adr-ema.h    
+    model/app/server/adr-central.h
+    model/app/server/adr-central-plus.h   
     model/app/forwarder.h
     model/app/udp-forwarder.h
     model/app/lora-application.h

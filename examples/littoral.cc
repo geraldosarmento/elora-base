@@ -47,21 +47,22 @@ using namespace lorawan;
 NS_LOG_COMPONENT_DEFINE("LittoralSim");
 
 // Simulation Parameters
-int nDevices = 700;
+int nDevices = 500;
 int nGateways = 1;
-int nPeriods = 5;
+int nPeriods = 4;
 double simulationTime = (24*60*60 * nPeriods);
 ////double simulationTime = (12*60*60);  //test
-double pktsPerDay = 12;
+double pktsPerDay = 24;
 double pktsPerSecs = pktsPerDay/86400;
 double appPeriodSecs = (1/pktsPerSecs); 
-int packetSize = 40;  
-double radius = 5000;
+int packetSize = 51;  
+double radius = 6000;
 double edHeight = 1.5;
 double gwHeight = 15.0;
 int baseSeed = 0;
 
 // Mobility Parameters
+bool mobility = false;
 double mobileNodeProbability = 0;
 double minSpeed = 0.5;
 double maxSpeed = 1.5;
@@ -72,10 +73,12 @@ bool const NSadrEnabled = true;
 bool EDadrEnabled = true;
 bool initializeSF = false;
 bool confirmedMode = true;
-bool buildingAllocation = true;
-bool okumuraHataModel = false;
-bool poissonModel = false;
+
+bool gridBuilAlloc = true;
+bool okumuraHataModel = true;
+bool const shadowingPropModel = true;
 bool const discPosLayout = true;
+bool poissonModel = false;
 bool saveToFile = true;
 bool verbose = false;
 
@@ -88,41 +91,6 @@ std::string adrType = "ns3::AdrLorawan";
 std::string rootPath = "scratch/output/";     // base path to output data
 std::string filename;
 std::ofstream outputFile;
-
-
-
-// Trace sources that are called when a node changes its DR or TX power
-void
-OnDataRateChange(uint8_t oldDr, uint8_t newDr)
-{
-    NS_LOG_DEBUG("DR" << unsigned(oldDr) << " -> DR" << unsigned(newDr));
-}
-
-void
-OnTxPowerChange(double oldTxPower, double newTxPower)
-{
-    NS_LOG_DEBUG(oldTxPower << " dBm -> " << newTxPower << " dBm");
-}
-
-void 
-setInitialTxParams (NodeContainer endDevices) {
-    
-    for (NodeContainer::Iterator j = endDevices.Begin (); j != endDevices.End (); ++j) {
-        Ptr<LoraNetDevice> loraNetDevice = (*j)->GetDevice (0)->GetObject<LoraNetDevice> ();
-        Ptr<EndDeviceLoraPhy> phy = loraNetDevice->GetPhy ()->GetObject<EndDeviceLoraPhy> ();
-        Ptr<ClassAEndDeviceLorawanMac> mac = loraNetDevice->GetMac ()->GetObject<ClassAEndDeviceLorawanMac> ();
-        //Ptr<BaseEndDeviceLorawanMac> mac = loraNetDevice->GetMac ()->GetObject<BaseEndDeviceLorawanMac> ();
-        
-        mac->SetDataRate ( 12 - SF );  //DR = 12 - SF
-        mac->SetTransmissionPower( TP );
-        mac->SetBandwidthForDataRate(
-        std::vector<double>{BW, BW, BW, BW, BW, BW, BW});
-        
-
-        if (confirmedMode)
-            mac->SetFType (LorawanMacHeader::CONFIRMED_DATA_UP);         
-    }
-}
 
 // For Poisson arrival model
 double currentTime = 1.0;
@@ -139,6 +107,40 @@ double getPoissonTime()
   return currentTime;
 }
 
+void 
+setInitialTxParams (NodeContainer endDevices) {
+    
+    for (NodeContainer::Iterator j = endDevices.Begin (); j != endDevices.End (); ++j) {
+        Ptr<LoraNetDevice> loraNetDevice = (*j)->GetDevice (0)->GetObject<LoraNetDevice> ();
+        Ptr<EndDeviceLoraPhy> phy = loraNetDevice->GetPhy ()->GetObject<EndDeviceLoraPhy> ();
+        Ptr<ClassAEndDeviceLorawanMac> mac = loraNetDevice->GetMac ()->GetObject<ClassAEndDeviceLorawanMac> ();
+        //Ptr<BaseEndDeviceLorawanMac> mac = loraNetDevice->GetMac ()->GetObject<BaseEndDeviceLorawanMac> ();
+        
+        mac->SetDataRate ( 12 - SF );  //DR = 12 - SF
+        mac->SetTransmissionPower( TP );
+        mac->SetBandwidthForDataRate(
+        std::vector<double>{BW, BW, BW, BW, BW, BW, BW});
+        
+        mac->SetNumberOfTransmissions(8);
+
+        if (confirmedMode)
+            mac->SetFType (LorawanMacHeader::CONFIRMED_DATA_UP);         
+    }
+}
+
+// Trace sources that are called when a node changes its DR or TX power
+void
+OnDataRateChange(uint8_t oldDr, uint8_t newDr)
+{
+    NS_LOG_DEBUG("DR" << unsigned(oldDr) << " -> DR" << unsigned(newDr));
+}
+
+void
+OnTxPowerChange(double oldTxPower, double newTxPower)
+{
+    NS_LOG_DEBUG(oldTxPower << " dBm -> " << newTxPower << " dBm");
+}
+
 
 int
 main(int argc, char* argv[])
@@ -151,11 +153,12 @@ main(int argc, char* argv[])
     cmd.AddValue("adrType", "ADR Class [ns3::AdrComponent, ns3::AdrLorawan, ns3::AdrPlus]", adrType);
     cmd.AddValue("confMode", "Whether to use confirmed mode or not", confirmedMode);
     cmd.AddValue("okumura", "Whether to use Okumura-Hata model or not", okumuraHataModel);
-    cmd.AddValue("building", "Whether to use GridBuildingAllocation model or not", buildingAllocation);
+    cmd.AddValue("building", "Whether to use GridBuildingAllocation model or not", gridBuilAlloc);
     cmd.AddValue("poisson", "Whether to use Poisson model or not", poissonModel);
     cmd.AddValue("EDadrEnabled", "Whether to enable ADR in ED level", EDadrEnabled);
     cmd.AddValue("nPeriods", "Number of periods to simulate", nPeriods);
     cmd.AddValue("radius", "The radius of the area to simulate", radius);
+    cmd.AddValue("mobility", "Whether EDs are mobile or not", mobility);
     cmd.AddValue("mobileNodeProb",
                  "Probability of a node being a mobile node",
                  mobileNodeProbability);
@@ -211,6 +214,9 @@ main(int argc, char* argv[])
         unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
         RngSeedManager::SetSeed(seed);
     }    
+
+    if (mobility)
+        mobileNodeProbability = 1.0;
     
     // Set the EDs to require Data Rate control from the NS
     Config::SetDefault("ns3::BaseEndDeviceLorawanMac::ADRBit", BooleanValue(NSadrEnabled));
@@ -247,7 +253,7 @@ main(int argc, char* argv[])
 
             channel = CreateObject<LoraChannel>(loss, delay);
 
-            buildingAllocation = false;  // disable gridBuildingAllocator
+            gridBuilAlloc = false;  // disable gridBuildingAllocator
         }
     }
     // if no OkumuraHataModel applied, use LogDistancePropagationLossModel
@@ -260,7 +266,7 @@ main(int argc, char* argv[])
         x->SetAttribute("Min", DoubleValue(0.0));
         x->SetAttribute("Max", DoubleValue(maxRandomLoss));
 
-        if (buildingAllocation) {
+        if (shadowingPropModel) {
             Ptr<CorrelatedShadowingPropagationLossModel> shadowing = 
             CreateObject<CorrelatedShadowingPropagationLossModel>();
             // Aggregate shadowing to the logdistance loss
@@ -416,7 +422,7 @@ main(int argc, char* argv[])
 
     int gridWidth = 2 * radius / (xLength + deltaX);
     int gridHeight = 2 * radius / (yLength + deltaY);
-    if (!buildingAllocation)
+    if (!gridBuilAlloc)
     {
         gridWidth = 0;
         gridHeight = 0;
@@ -598,7 +604,9 @@ main(int argc, char* argv[])
         //outputFile.open(filename.c_str(), std::ofstream::out | std::ofstream::app);
         outputFile.open(filename.c_str(), std::ofstream::out | std::ofstream::trunc);        
         //Snt, Rcvd, PDR 
-        outputFile << tracker.CountMacPacketsGlobally( Seconds(60), Seconds(simulationTime) ) << std::endl;
+        //outputFile << tracker.CountMacPacketsGlobally( Seconds(60), Seconds(simulationTime) ) << std::endl;
+        outputFile << tracker.CountMacPacketsGloballyCpsr( Seconds(60), Seconds(simulationTime) ) << std::endl;
+
 
         //// For printing at each hour 
         //for(int i = 0; i < (simulationTime/3600)-1; i++)

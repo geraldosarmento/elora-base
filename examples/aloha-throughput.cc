@@ -43,7 +43,7 @@ double radius = 1000;
 double simulationTime = 100;
 
 // Channel model
-bool buildingAllocation = false;
+bool gridBuilAlloc = false;
 
 int
 main(int argc, char* argv[])
@@ -91,7 +91,7 @@ main(int argc, char* argv[])
     loss->SetPathLossExponent(3.76);
     loss->SetReference(1, 7.7);
 
-    if (buildingAllocation)
+    if (gridBuilAlloc)
     {
         // Create the correlated shadowing component
         Ptr<CorrelatedShadowingPropagationLossModel> shadowing =

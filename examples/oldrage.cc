@@ -56,7 +56,7 @@ bool const NSadrEnabled = true;
 bool EDadrEnabled = true;
 bool confirmedMode = true;
 bool initializeSF = false;
-bool buildingAllocation = true;
+bool gridBuilAlloc = true;
 bool poissonModel = false;
 int baseSeed = 0;
 double mobileNodeProbability = 0;
@@ -203,7 +203,7 @@ main(int argc, char* argv[])
     loss->SetPathLossExponent(3.76);
     loss->SetReference(1, 7.7);
 
-    if (buildingAllocation)
+    if (gridBuilAlloc)
     {
         // Create the correlated shadowing component
         Ptr<CorrelatedShadowingPropagationLossModel> shadowing =
@@ -343,7 +343,7 @@ main(int argc, char* argv[])
 
     int gridWidth = 2 * radius / (xLength + deltaX);
     int gridHeight = 2 * radius / (yLength + deltaY);
-    if (!buildingAllocation)
+    if (!gridBuilAlloc)
     {
         gridWidth = 0;
         gridHeight = 0;

@@ -8,18 +8,19 @@ from scipy.stats import t
 import time
 import json
 
+
 novaSimulacao = True
 rootPath = "scratch/output/"
 numRep = 8  
-numED = 800
-raio = 5000
+numED = 500
+raio = 6000
 adrDic = {"ns3::AdrLorawan":"ADR", "ns3::AdrPlus":"ADR+"}
 ###adrDic = {"ns3::AdrLorawan":"ADR", "ns3::AdrPlus":"ADR+", "ns3::AdrGaussian":"G-ADR", "ns3::AdrEMA":"EMA-ADR"}
+##adrDic = {"ns3::AdrLorawan":"ADR", "ns3::AdrPlus":"ADR+", "ns3::AdrCentral":"ADR-C", "ns3::AdrCentralPlus":"ADR-C+"}
 
-#mobileProb = [0, 0.9]
-mobileProb = [0]
 # Lista genérica usada para testar diversos modelos dentro da simulação
 cenarios = ["true", "false"]
+#cenarios = ["true"]
 
 mediaPDR = {}
 tempo = []
@@ -39,8 +40,8 @@ def executarSim():
                 print("=============================================================")
                 print("Executando esquema ",esq,". Rodada #",rodCont," de ",len(adrDic)*numRep*len(cenarios))
                 print("=============================================================")
-                cmd = f"./ns3 run \"littoral  --adrType={esq} --nED={numED} --radius={raio} --EDadrEnabled={cen}\" --quiet"
-                # --confMode={cen} --baseSeed={ensCont} --mobileProb={m} --EDadrEnabled={cen}
+                cmd = f"./ns3 run \"littoral  --adrType={esq} --nED={numED} --radius={raio} --mobility=true --poisson={cen}\" --quiet"
+                # --confMode={cen} --baseSeed={ensCont} --mobileProb={m} --EDadrEnabled={cen} --okumura={cen}
                 # # Sample: ./ns3 run "littoral --poisson=true --quiet"
                 # ./contrib/elora/examples/runSim_SerieTemp_SF.py && ./contrib/elora/examples/runSim_Escalabilidade.py
                 os.system(cmd)
@@ -57,7 +58,6 @@ def executarSim():
             dfPDR = pd.DataFrame()
             dfSF = pd.DataFrame()              
         plotarSerieTemporal(cen)   
-        #if (m == mobileProb[0]):
         if (cen == "true"):
             salvarDictEmArquivo(mediaPDR, rootPath+'pdrEnsaio1.json')
         else:
@@ -91,7 +91,6 @@ def atualizarSerieTemporal(ensaio, it):
     global dfPDR, tempo
 
     arquivo = rootPath + 'globalPerf-' + ensaio + '.csv'
-    #arquivo = rootPath + 'GlobalPacketCount-' + ensaio + '.csv'
     
     # Ler o arquivo CSV
     arq = pd.read_csv(arquivo, header=None, sep=' ')
@@ -101,24 +100,19 @@ def atualizarSerieTemporal(ensaio, it):
     dfPDR['Tempo'] = arq[0]/3600
     tempo = dfPDR['Tempo'].tolist()  # Guarda o tempo para gerar o gráfico
     dfPDR['Media'] = arq[1]  # Cria a coluna Media inicialmente com valores coringa
-    #dfPDR['pdr'+str(it)] =  arq[2].astype(float)  # Cria a coluna pdr(it) inicialmente com valores coringa
     dfPDR['pdr'+str(it)] = arq[2]/arq[1]    
 
 def calculaMediaSerieTemporal():
     global dfPDR
     soma = 0
     media = []
-    #dfST['Media'] = dfST['Tempo']  # Apenas para inicializar a coluna Media
 
     for i in range (dfPDR.shape[0]):     #Para cada linha do DF
-        #for j in range(1, dfST.shape[1]):   #Para cada coluna do DF (exceto a 1a)
         linha = dfPDR.iloc[i, 2:]
         soma =+ linha.sum()
-        media.append(soma/(dfPDR.shape[1]-2))  # soma/qtdColunas (exceto a 1a)
-         
-    
+        media.append(soma/(dfPDR.shape[1]-2))  # soma/qtdColunas (exceto a 1a)   
     dfPDR['Media'] = media
-    #print(dfST)
+
 
 ########################## Cálculo do SF ########################
 def rastrearSF(esquema, it):
@@ -145,7 +139,6 @@ def calcularMediaSF(esquema):
 
 
 def plotarSerieTemporal(cenario):
-    #print("pdrMedia ",pdrMedia)
     marcadores = ['*','+','x','^','p','o']
     #cores = ['black', 'red', 'green', 'blue']
     
@@ -260,12 +253,11 @@ def main():
         tempo = carregarDictDeArquivo(rootPath+'tempo.json')
         mediaPDR = {}
         mediaPDR = carregarDictDeArquivo(rootPath+'pdrEnsaio1.json')
-        plotarSerieTemporal(mobileProb[0])
+        plotarSerieTemporal("true")
         mediaPDR = {}
         mediaPDR = carregarDictDeArquivo(rootPath+'pdrEnsaio2.json')
-        plotarSerieTemporal(mobileProb[1])
+        plotarSerieTemporal("false")
    
-          
 
 if __name__ == '__main__':
     main()
