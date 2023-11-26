@@ -38,13 +38,20 @@ def executarSim():
         for esq in adrDic.keys():   #cenários
             for rep in range(numRep):
                 print("=============================================================")
-                print("Executando esquema ",esq,". Rodada #",rodCont," de ",len(adrDic)*numRep*len(cenarios))
+                print("Executando esquema:",esq,". Rodada #",rodCont," de ",len(adrDic)*numRep*len(cenarios))
                 print("=============================================================")
                 cmd = f"./ns3 run \"littoral  --adrType={esq} --nED={numED} --radius={raio} --mobility=true --okumura={cen}\" --quiet"
                 # --confMode={cen} --baseSeed={ensCont} --mobileProb={m} --EDadrEnabled={cen} --okumura={cen} --poisson={cen}
                 # # Sample: ./ns3 run "littoral --poisson=true --quiet"
                 # ./contrib/elora/examples/runSim_SerieTemp_SF.py && ./contrib/elora/examples/runSim_Escalabilidade.py
+                inicio = time.time()
                 os.system(cmd)
+                fim = time.time()
+                tempoDecor = fim - inicio
+                tempoAcum += tempoDecor
+                print(f"Tempo de execução desta rodada: {round(tempoDecor,5)} s") 
+                print(f"Tempo estimado de término da simulação: {round( ((tempoAcum/rodCont) * (len(adrDic)*numRep*len(cenarios)-rodCont))/60 , 5)} min \n") 
+
                
                 rodCont += 1
                 atualizarSerieTemporal(esq, rep)
@@ -59,12 +66,12 @@ def executarSim():
             dfSF = pd.DataFrame()              
         plotarSerieTemporal(cen)   
         if (cen == "true"):
-            salvarDictEmArquivo(mediaPDR, rootPath+'pdrEnsaio1.json')
+            salvarDadosEmArquivo(mediaPDR, rootPath+'pdrEnsaio1.json')
         else:
-            salvarDictEmArquivo(mediaPDR, rootPath+'pdrEnsaio2.json')        
+            salvarDadosEmArquivo(mediaPDR, rootPath+'pdrEnsaio2.json')        
         mediaPDR = {}
         #apagarArqs(rootPath, '.csv')   #apaga apenas os arquivos .csv
-        salvarDictEmArquivo(tempo, rootPath+'tempo.json')
+        salvarDadosEmArquivo(tempo, rootPath+'tempo.json')
 
     
 
@@ -225,12 +232,12 @@ def plotarSFFinalCirculo(cenario, esquema):
 
 
 # Função para salvar um dicionário em um arquivo JSON
-def salvarDictEmArquivo(dicionario, nome_arquivo):
+def salvarDadosEmArquivo(dicionario, nome_arquivo):
     with open(nome_arquivo, 'w') as arquivo:
         json.dump(dicionario, arquivo)
 
 # Função para carregar um dicionário de um arquivo JSON
-def carregarDictDeArquivo(nome_arquivo):
+def carregarDadosDeArquivo(nome_arquivo):
     with open(nome_arquivo, 'r') as arquivo:
         dicionario = json.load(arquivo)
         return dicionario
@@ -250,12 +257,12 @@ def main():
         tempo_decorrido /= 60
         print(f"Tempo total de simulação: {round(tempo_decorrido,5)} min")
     else:        # Apenas gerar os gráficos novamente
-        tempo = carregarDictDeArquivo(rootPath+'tempo.json')
+        tempo = carregarDadosDeArquivo(rootPath+'tempo.json')
         mediaPDR = {}
-        mediaPDR = carregarDictDeArquivo(rootPath+'pdrEnsaio1.json')
+        mediaPDR = carregarDadosDeArquivo(rootPath+'pdrEnsaio1.json')
         plotarSerieTemporal("true")
         mediaPDR = {}
-        mediaPDR = carregarDictDeArquivo(rootPath+'pdrEnsaio2.json')
+        mediaPDR = carregarDadosDeArquivo(rootPath+'pdrEnsaio2.json')
         plotarSerieTemporal("false")
    
 

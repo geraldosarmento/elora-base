@@ -159,9 +159,6 @@ main(int argc, char* argv[])
     cmd.AddValue("nPeriods", "Number of periods to simulate", nPeriods);
     cmd.AddValue("radius", "The radius of the area to simulate", radius);
     cmd.AddValue("mobility", "Whether EDs are mobile or not", mobility);
-    cmd.AddValue("mobileNodeProb",
-                 "Probability of a node being a mobile node",
-                 mobileNodeProbability);
     cmd.AddValue("baseSeed", "Which seed value to use on RngSeedManager", baseSeed);
     cmd.AddValue("maxRandomLoss",
                  "Maximum amount in dB of the random loss component",
