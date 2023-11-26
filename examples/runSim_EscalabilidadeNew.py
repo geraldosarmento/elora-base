@@ -47,7 +47,7 @@ def executarSim():
                     print("=============================================================")
                     print("Executando esquema:",esq," - Rodada #",rodCont," de ",len(numED)*len(adrDic)*numRep*len(cenarios))
                     print("=============================================================")
-                    cmd = f"./ns3 run \"littoral  --adrType={esq} --nED={eds} --radius={raio} --mobility={cen} --simTime\" --quiet"
+                    cmd = f"./ns3 run \"littoral  --adrType={esq} --nED={eds} --radius={raio} --mobility={cen}\" --quiet"
                     # --confMode={cen} --baseSeed={ensCont} --EDadrEnabled={cen} --okumura={cen} --poisson={cen}
                     # Sample: ./ns3 run "littoral --adrType=ns3::AdrPlus"
                     # exec(open('/opt/simuladores/ns-allinone-3.40-ELORA/ns-3.40/contrib/elora/examples/runSim_Escalabilidade.py').read())
