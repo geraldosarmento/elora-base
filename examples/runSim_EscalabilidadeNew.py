@@ -10,27 +10,32 @@ import json
 
 
 rootPath = "scratch/output/"
-numRep = 5
+numRep = 7
 numED = [200,400,600,800,1000]
 #numED = [600,800]
 raio = 6000
 #adrDic = {"ns3::AdrLorawan":"ADR", "ns3::AdrPlus":"ADR+"}
 adrDic = {"ns3::AdrPlus":"ADR+", "ns3::AdrCentral":"ADR-C", "ns3::AdrCentralPlus":"ADR-C+"}
-
+#adrDic = {"ns3::AdrCentral":"ADR-C", "ns3::AdrCentralPlus":"ADR-C+"}
+modoConfirmado = True
 
 # Lista genérica usada para testar diversos modelos dentro da simulação
-#cenarios = ["true", "false"]
-cenarios = ["true"]
+cenarios = ["true", "false"]
+#cenarios = ["true"]
 
 
 amostras = []
+amostrasCpsr = []
 dfED = pd.DataFrame()
-ultimaChave = list(adrDic.keys())[-1]
+dfEDCpsr = pd.DataFrame()
 pivot = 0  #controla as linhas do DF
+pivotCpsr = 0
+ultimaChave = list(adrDic.keys())[-1]
 
 def executarSim(): 
     global mediaED, dfED
     rodCont = 1     # Conta a quantidade de rodadas
+    tempoAcum = 0
     apagarArqs(rootPath, '.csv')    #Limpa arquivos de saída anteriores
     reiniciarDF()
     
@@ -40,16 +45,24 @@ def executarSim():
             for esq in adrDic.keys():   #esquemas            
                 for rep in range(numRep):
                     print("=============================================================")
-                    print("Executando esquema #",esq,". Rodada #",rodCont," de ",len(numED)*len(adrDic)*numRep*len(cenarios))
+                    print("Executando esquema:",esq," - Rodada #",rodCont," de ",len(numED)*len(adrDic)*numRep*len(cenarios))
                     print("=============================================================")
-                    cmd = f"./ns3 run \"littoral  --adrType={esq} --nED={eds} --radius={raio} --mobility=true  --okumura={cen}\" --quiet"
+                    cmd = f"./ns3 run \"littoral  --adrType={esq} --nED={eds} --radius={raio} --mobility={cen} --simTime\" --quiet"
                     # --confMode={cen} --baseSeed={ensCont} --EDadrEnabled={cen} --okumura={cen} --poisson={cen}
                     # Sample: ./ns3 run "littoral --adrType=ns3::AdrPlus"
                     # exec(open('/opt/simuladores/ns-allinone-3.40-ELORA/ns-3.40/contrib/elora/examples/runSim_Escalabilidade.py').read())
+                    inicio = time.time()
                     os.system(cmd)
+                    fim = time.time()
+                    tempoDecor = fim - inicio
+                    tempoAcum += tempoDecor
+                    print(f"Tempo de execução desta rodada: {round(tempoDecor,5)} s") 
+                    print(f"Tempo estimado de término da simulação: {round( ((tempoAcum/rodCont) * (len(numED)*len(adrDic)*numRep*len(cenarios)-rodCont))/60 , 5)} min \n") 
 
                     rodCont += 1                    
-                    atualizarDados(esq,rodCont)                              
+                    atualizarDados(esq) 
+                    if (modoConfirmado):
+                        atualizarDadosCpsr(esq)
         plotarGrafico(cen)  
         reiniciarDF() 
            
@@ -74,7 +87,7 @@ def apagarArqs(pasta, extensao=None):
 
 
 def reiniciarDF():
-    global dfED, pivot
+    global dfED, dfEDCpsr, pivot, pivotCpsr
 
     dfED = pd.DataFrame()
     dfED['numED'] = numED
@@ -83,9 +96,17 @@ def reiniciarDF():
         dfED[adrDic[esq]] = None
     pivot = 0
 
+    if (modoConfirmado):
+        dfEDCpsr = pd.DataFrame()
+        dfEDCpsr['numED'] = numED
+        dfEDCpsr['numED'] = dfEDCpsr['numED'].astype(int)
+        for esq in adrDic.keys():
+            dfEDCpsr[adrDic[esq]+"-CPSR"] = None
+        pivotCpsr = 0
+
 
 # Recebe o nome de um ensaio e uma determinada iteração do experimento
-def atualizarDados(esq,rod):
+def atualizarDados(esq):
     global dfED, amostras, pivot
 
     arquivo = rootPath + 'GlobalPacketCount-' + esq + '.csv'    
@@ -100,11 +121,28 @@ def atualizarDados(esq,rod):
         if (esq == ultimaChave):
             pivot += 1
 
+def atualizarDadosCpsr(esq):
+    global dfEDCpsr, amostrasCpsr, pivotCpsr
+   
+    arquivo = rootPath + 'GlobalPacketCountCpsr-' + esq + '.csv'
+    arq = pd.read_csv(arquivo, header=None, sep=' ')
+    amostrasCpsr.append(arq.iloc[0,2])  #Coluna com o PDR
+
+    if (len(amostrasCpsr) == numRep):        
+        media = sum(amostrasCpsr) / len(amostrasCpsr)
+        dfEDCpsr.loc[pivotCpsr,adrDic[esq]+"-CPSR"] = media
+        amostrasCpsr = []
+        if (esq == ultimaChave):
+            pivotCpsr += 1
+
 def plotarGrafico(cen):
     eixo_x = dfED.iloc[:, 0]
     linhas_grafico = dfED.iloc[:, 1:]  # Seleciona da coluna 1 em diante
+    if (modoConfirmado):
+        linhas_grafico = pd.concat([linhas_grafico,dfEDCpsr.iloc[:, 1:]],axis=1)
+        #print (f"linhas_grafico:\n{linhas_grafico}")
     
-    marcadores = ['*','+','x','^','p','o']
+    marcadores = ['*','+','x','^','v','p','o','s']
 
     # Criando o gráfico
     plt.figure(figsize=(10, 6))  # Definindo o tamanho do gráfico

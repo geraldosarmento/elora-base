@@ -65,7 +65,7 @@ int baseSeed = 0;
 bool mobility = false;
 double mobileNodeProbability = 0;
 double minSpeed = 0.5;
-double maxSpeed = 1.5;
+double maxSpeed = 2.0;
 double maxRandomLoss = 10;
 
 // Network Options
@@ -74,8 +74,8 @@ bool EDadrEnabled = true;
 bool initializeSF = false;
 bool confirmedMode = true;
 
+bool okumuraHataModel = false;
 bool gridBuilAlloc = true;
-bool okumuraHataModel = true;
 bool const shadowingPropModel = true;
 bool const discPosLayout = true;
 bool poissonModel = false;
@@ -89,8 +89,8 @@ int SF = 12;                        // Spreading Factor
 
 std::string adrType = "ns3::AdrLorawan";
 std::string rootPath = "scratch/output/";     // base path to output data
-std::string filename;
-std::ofstream outputFile;
+std::string filename, filenameCpsr;
+std::ofstream outputFile, outputFileCpsr;
 
 // For Poisson arrival model
 double currentTime = 1.0;
@@ -601,17 +601,26 @@ main(int argc, char* argv[])
 
     if (saveToFile) {
         filename = rootPath + "GlobalPacketCount-" + adrType + ".csv";
-        //outputFile.open(filename.c_str(), std::ofstream::out | std::ofstream::app);
-        outputFile.open(filename.c_str(), std::ofstream::out | std::ofstream::trunc);        
-        //Snt, Rcvd, PDR 
-        //outputFile << tracker.CountMacPacketsGlobally( Seconds(60), Seconds(simulationTime) ) << std::endl;
-        outputFile << tracker.CountMacPacketsGloballyCpsr( Seconds(60), Seconds(simulationTime) ) << std::endl;
+        filenameCpsr = rootPath + "GlobalPacketCountCpsr-" + adrType + ".csv";
 
+        //outputFile.open(filename.c_str(), std::ofstream::out | std::ofstream::app);
+        outputFile.open(filename.c_str(), std::ofstream::out | std::ofstream::trunc);  
+
+        //Snt, Rcvd, PDR 
+        outputFile << tracker.CountMacPacketsGlobally( Seconds(60), Seconds(simulationTime) ) << std::endl;
+        //outputFile << tracker.CountMacPacketsGloballyCpsr( Seconds(60), Seconds(simulationTime) ) << std::endl;
+        outputFile.close();
+
+        if (confirmedMode) {
+            outputFileCpsr.open(filenameCpsr.c_str(), std::ofstream::out | std::ofstream::trunc); 
+            outputFileCpsr << tracker.CountMacPacketsGloballyCpsr( Seconds(60), Seconds(simulationTime) ) << std::endl;
+            outputFileCpsr.close();
+        }
 
         //// For printing at each hour 
         //for(int i = 0; i < (simulationTime/3600)-1; i++)
         //  outputFile << tracker.CountMacPacketsGlobally( Seconds(i*3600), Seconds( (i+1)*3600 ) )<< std::endl;
-        outputFile.close();
+        
     }
 
     return 0;

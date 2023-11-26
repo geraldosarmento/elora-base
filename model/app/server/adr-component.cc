@@ -206,6 +206,7 @@ AdrComponent::AdrImplementation(uint8_t* newDataRate,
         m_SNR = GetMinSNR(status->GetReceivedPacketList(), historyRange);
     }
 
+    
     NS_LOG_DEBUG("m_SNR = " << m_SNR);
 
     // Get the SF used by the device

@@ -130,8 +130,8 @@ std::vector<double> AdrCentral::RemoveOutliers(std::vector<double> values, doubl
     double iqr = q3 - q1;
 
     // Calculate the lower and upper bounds for outliers
-    double lowerBound = q1 - 1.0 * iqr;
-    double upperBound = q3 + 1.0 * iqr;
+    double lowerBound = q1 - 0.5 * iqr;
+    double upperBound = q3 + 0.5 * iqr;
 
     // Remove outliers from the vector
     values.erase(std::remove_if(values.begin(), values.end(),

@@ -11,16 +11,16 @@ import json
 
 novaSimulacao = True
 rootPath = "scratch/output/"
-numRep = 8  
+numRep = 5  
 numED = 500
 raio = 6000
-adrDic = {"ns3::AdrLorawan":"ADR", "ns3::AdrPlus":"ADR+"}
+#adrDic = {"ns3::AdrLorawan":"ADR", "ns3::AdrPlus":"ADR+"}
 ###adrDic = {"ns3::AdrLorawan":"ADR", "ns3::AdrPlus":"ADR+", "ns3::AdrGaussian":"G-ADR", "ns3::AdrEMA":"EMA-ADR"}
-##adrDic = {"ns3::AdrLorawan":"ADR", "ns3::AdrPlus":"ADR+", "ns3::AdrCentral":"ADR-C", "ns3::AdrCentralPlus":"ADR-C+"}
+adrDic = {"ns3::AdrPlus":"ADR+", "ns3::AdrCentral":"ADR-C", "ns3::AdrCentralPlus":"ADR-C+"}
 
 # Lista genérica usada para testar diversos modelos dentro da simulação
-cenarios = ["true", "false"]
-#cenarios = ["true"]
+#cenarios = ["true", "false"]
+cenarios = ["true"]
 
 mediaPDR = {}
 tempo = []
@@ -40,8 +40,8 @@ def executarSim():
                 print("=============================================================")
                 print("Executando esquema ",esq,". Rodada #",rodCont," de ",len(adrDic)*numRep*len(cenarios))
                 print("=============================================================")
-                cmd = f"./ns3 run \"littoral  --adrType={esq} --nED={numED} --radius={raio} --mobility=true --poisson={cen}\" --quiet"
-                # --confMode={cen} --baseSeed={ensCont} --mobileProb={m} --EDadrEnabled={cen} --okumura={cen}
+                cmd = f"./ns3 run \"littoral  --adrType={esq} --nED={numED} --radius={raio} --mobility=true --okumura={cen}\" --quiet"
+                # --confMode={cen} --baseSeed={ensCont} --mobileProb={m} --EDadrEnabled={cen} --okumura={cen} --poisson={cen}
                 # # Sample: ./ns3 run "littoral --poisson=true --quiet"
                 # ./contrib/elora/examples/runSim_SerieTemp_SF.py && ./contrib/elora/examples/runSim_Escalabilidade.py
                 os.system(cmd)
