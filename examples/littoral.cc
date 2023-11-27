@@ -1,4 +1,5 @@
 
+#include "ns3/basic-energy-source-helper.h"
 #include "ns3/building-penetration-loss.h"
 #include "ns3/building-allocator.h"
 #include "ns3/buildings-helper.h"
@@ -9,6 +10,7 @@
 #include "ns3/core-module.h"
 #include "ns3/correlated-shadowing-propagation-loss-model.h"
 #include "ns3/end-device-lora-phy.h"
+#include "ns3/file-helper.h"
 #include "ns3/forwarder-helper.h"
 #include "ns3/gateway-lora-phy.h"
 #include "ns3/gateway-lorawan-mac.h"
@@ -16,6 +18,7 @@
 #include "ns3/log.h"
 #include "ns3/lora-channel.h"
 #include "ns3/lora-device-address-generator.h"
+#include "ns3/lora-radio-energy-model-helper.h"
 #include "ns3/lorawan-helper.h"
 #include "ns3/lora-net-device.h"
 #include "ns3/lora-phy-helper.h"
@@ -73,6 +76,7 @@ bool const NSadrEnabled = true;
 bool EDadrEnabled = true;
 bool initializeSF = false;
 bool confirmedMode = true;
+bool energyModel = true;
 
 bool okumuraHataModel = false;
 bool gridBuilAlloc = true;
@@ -91,6 +95,7 @@ std::string adrType = "ns3::AdrLorawan";
 std::string rootPath = "scratch/output/";     // base path to output data
 std::string filename, filenameCpsr;
 std::ofstream outputFile, outputFileCpsr;
+FileHelper fileHelper;
 
 // For Poisson arrival model
 double currentTime = 1.0;
@@ -398,7 +403,7 @@ main(int argc, char* argv[])
     macHelper.SetType("ns3::ClassAEndDeviceLorawanMac");
     macHelper.SetAddressGenerator(addrGen);
     macHelper.SetRegion(LorawanMacHelper::EU);
-    helper.Install(phyHelper, macHelper, endDevices);
+    NetDeviceContainer endDevicesNetDevices = helper.Install(phyHelper, macHelper, endDevices);
 
     // Set initial transmission parameters
     setInitialTxParams(endDevices);
@@ -525,6 +530,50 @@ main(int argc, char* argv[])
     // Install the Forwarder application on the gateways
     ForwarderHelper forwarderHelper;
     forwarderHelper.Install(gateways);
+
+    /************************
+     * Install Energy Model *
+     ************************/
+
+    if (energyModel) {
+        
+        NS_LOG_INFO("Installing energy model on end devices...");
+        BasicEnergySourceHelper basicSourceHelper;
+        LoraRadioEnergyModelHelper radioEnergyHelper;
+
+        // configure energy source
+        basicSourceHelper.Set("BasicEnergySourceInitialEnergyJ", DoubleValue(10000)); // Energy in J
+        basicSourceHelper.Set("BasicEnergySupplyVoltageV", DoubleValue(3.3));
+
+        radioEnergyHelper.Set("StandbyCurrentA", DoubleValue(0.0014));
+        radioEnergyHelper.Set("TxCurrentA", DoubleValue(0.028));
+        radioEnergyHelper.Set("SleepCurrentA", DoubleValue(0.0000015));
+        radioEnergyHelper.Set("RxCurrentA", DoubleValue(0.0112));
+
+        radioEnergyHelper.SetTxCurrentModel("ns3::ConstantLoraTxCurrentModel",
+                                            "TxCurrent",
+                                            DoubleValue(0.028));
+
+        // install source on EDs' nodes
+        EnergySourceContainer sources = basicSourceHelper.Install(endDevices);
+        Names::Add("/Names/EnergySource", sources.Get(0));
+
+
+        // install device model
+        DeviceEnergyModelContainer deviceModels =
+            radioEnergyHelper.Install(endDevicesNetDevices, sources);
+     
+        NS_LOG_INFO("Preparing output file...");
+        fileHelper.ConfigureFile("battery-level", FileAggregator::SPACE_SEPARATED);
+        fileHelper.WriteProbe("ns3::DoubleProbe", "/Names/EnergySource/RemainingEnergy", "Output");
+
+
+    }
+
+    /**************
+     * Traces      *
+     **************/
+
 
     // Connect our traces
     if (verbose) {

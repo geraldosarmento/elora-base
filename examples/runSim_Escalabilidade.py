@@ -10,15 +10,16 @@ import json
 
 
 novaSimulacao = True
-modoConfirmado = True
+energyModel = True
+modoCpsr = False
 rootPath = "scratch/output/"
-numRep = 2
-#numED = [200,400,600,800,1000]
-numED = [600,800]
+numRep = 7
+numED = [200,400,600,800,1000]
+#numED = [600,800]
 raio = 6000
-#adrDic = {"ns3::AdrLorawan":"ADR", "ns3::AdrPlus":"ADR+"}
-adrDic = {"ns3::AdrPlus":"ADR+", "ns3::AdrCentral":"ADR-C"}
-#adrDic = {"ns3::AdrCentral":"ADR-C", "ns3::AdrCentralPlus":"ADR-C+"}
+energiaInicial = 10000
+adrDic = {"ns3::AdrLorawan":"ADR", "ns3::AdrPlus":"ADR+", "ns3::AdrCentral":"ADR-C"}
+#adrDic = {"ns3::AdrPlus":"ADR+", "ns3::AdrCentral":"ADR-C"}
 
 
 # Lista genérica usada para testar diversos modelos dentro da simulação
@@ -28,10 +29,14 @@ cenarios = ["true"]
 
 amostras = []
 amostrasCpsr = []
+amostrasEnergy = []
 dfED = pd.DataFrame()
 dfEDCpsr = pd.DataFrame()
+dfEnergy = pd.DataFrame()
 pivot = 0  #controla as linhas do DF
 pivotCpsr = 0
+pivotEnergy = 0
+
 ultimaChave = list(adrDic.keys())[-1]
 
 def executarSim(): 
@@ -49,8 +54,8 @@ def executarSim():
                     print("=============================================================")
                     print("Executando esquema:",esq," - Rodada #",rodCont," de ",len(numED)*len(adrDic)*numRep*len(cenarios))
                     print("=============================================================")
-                    cmd = f"./ns3 run \"littoral  --adrType={esq} --nED={eds} --radius={raio} --mobility={cen}\" --quiet"
-                    # --confMode={cen} --baseSeed={ensCont} --EDadrEnabled={cen} --okumura={cen} --poisson={cen}
+                    cmd = f"./ns3 run \"littoral  --adrType={esq} --nED={eds} --radius={raio} --mobility=true\" --quiet"
+                    # --confMode={cen} --baseSeed={ensCont} --EDadrEnabled={cen} --okumura={cen} --poisson={cen} --mobility={cen} --simTime=1200
                     # Sample: ./ns3 run "littoral --adrType=ns3::AdrPlus"
                     # exec(open('/opt/simuladores/ns-allinone-3.40-ELORA/ns-3.40/contrib/elora/examples/runSim_Escalabilidade.py').read())
                     inicio = time.time()
@@ -63,15 +68,18 @@ def executarSim():
 
                     rodCont += 1                    
                     atualizarDados(esq) 
-                    if (modoConfirmado):
-                        atualizarDadosCpsr(esq)
+                    atualizarDadosCpsr(esq) if modoCpsr else None
+                    atualizarDadosEnergia(esq) if energyModel else None
         plotarGrafico(cen)
+        plotarGraficoEnergy(cen) if energyModel else None
         if (cen == "true"):
             salvarDadosEmArquivo(dfED, rootPath+'PDREsc-Cen1.json')
-            salvarDadosEmArquivo(dfEDCpsr, rootPath+'PDREscCpsr-Cen1.json') if modoConfirmado else None
+            salvarDadosEmArquivo(dfEDCpsr, rootPath+'PDREscCpsr-Cen1.json') if modoCpsr else None
+            salvarDadosEmArquivo(dfEnergy, rootPath+'Energy-Cen1.json') if energyModel else None
         else:
             salvarDadosEmArquivo(dfED, rootPath+'PDREsc-Cen2.json')
-            salvarDadosEmArquivo(dfEDCpsr, rootPath+'PDREscCpsr-Cen2.json') if modoConfirmado else None       
+            salvarDadosEmArquivo(dfEDCpsr, rootPath+'PDREscCpsr-Cen2.json') if modoCpsr else None 
+            salvarDadosEmArquivo(dfEnergy, rootPath+'Energy-Cen2.json') if energyModel else None      
         reiniciarDF() 
            
 
@@ -95,7 +103,7 @@ def apagarArqs(pasta, extensao=None):
 
 
 def reiniciarDF():
-    global dfED, dfEDCpsr, pivot, pivotCpsr
+    global dfED, dfEDCpsr, dfEnergy, pivot, pivotCpsr, pivotEnergy
 
     dfED = pd.DataFrame()
     dfED['numED'] = numED
@@ -104,13 +112,21 @@ def reiniciarDF():
         dfED[adrDic[esq]] = None
     pivot = 0
 
-    if (modoConfirmado):
+    if (modoCpsr):
         dfEDCpsr = pd.DataFrame()
         dfEDCpsr['numED'] = numED
         dfEDCpsr['numED'] = dfEDCpsr['numED'].astype(int)
         for esq in adrDic.keys():
             dfEDCpsr[adrDic[esq]+"-CPSR"] = None
         pivotCpsr = 0
+
+    if (energyModel):
+        dfEnergy = pd.DataFrame()
+        dfEnergy['numED'] = numED
+        dfEnergy['numED'] = dfEnergy['numED'].astype(int)
+        for esq in adrDic.keys():
+            dfEnergy[adrDic[esq]] = None
+        pivotEnergy = 0
 
 
 # Recebe o nome de um ensaio e uma determinada iteração do experimento
@@ -146,18 +162,19 @@ def atualizarDadosCpsr(esq):
 def plotarGrafico(cen):
     eixo_x = dfED.iloc[:, 0]
     linhas_grafico = dfED.iloc[:, 1:]  # Seleciona da coluna 1 em diante
-    if (modoConfirmado):
+    if modoCpsr:
         linhas_grafico = pd.concat([linhas_grafico,dfEDCpsr.iloc[:, 1:]],axis=1)
         #print (f"linhas_grafico:\n{linhas_grafico}")
     
     marcadores = ['*','+','x','^','v','p','o','s']
+    estilos = ['-', '--', ':', '-.']
 
     # Criando o gráfico
     plt.figure(figsize=(10, 6))  # Definindo o tamanho do gráfico
 
     # Plotando as linhas do gráfico para as últimas 4 colunas
     for i, coluna in enumerate(linhas_grafico.columns):
-        plt.plot(eixo_x, linhas_grafico[coluna], marker=marcadores[i % len(marcadores)], label=coluna)  # Adiciona uma linha para cada coluna
+        plt.plot(eixo_x, linhas_grafico[coluna], linestyle=estilos[i % len(estilos)] , marker=marcadores[i % len(marcadores)], label=coluna)  # Adiciona uma linha para cada coluna
 
 
     plt.xticks(eixo_x)
@@ -175,6 +192,59 @@ def plotarGrafico(cen):
         plt.savefig(rootPath+'escala-Ensaio2.png')
     #plt.show()  # Exibe o gráfico
 
+##### ENERGIA #####
+def atualizarDadosEnergia(esq):
+    global dfEnergy, amostrasEnergy, pivotEnergy
+
+    with open('battery-level.txt', 'r') as arquivo:
+        linhas = arquivo.readlines()  # Lê todas as linhas do arquivo
+    
+    ultimaLinha = linhas[-1].split()
+    segundaColuna = float(ultimaLinha[1])
+
+    amostrasEnergy.append(energiaInicial-segundaColuna)
+
+    if (len(amostrasEnergy) == numRep):        
+        media = sum(amostrasEnergy) / len(amostrasEnergy)
+        dfEnergy.loc[pivotEnergy,adrDic[esq]] = media
+        amostrasEnergy = []
+        if (esq == ultimaChave):
+            pivotEnergy += 1
+
+
+def plotarGraficoEnergy(cen):
+    print(f"dfEnergy: \n {dfEnergy}")
+
+    eixo_x = dfEnergy.iloc[:, 0]
+    linhas_grafico = dfEnergy.iloc[:, 1:]  # Seleciona da coluna 1 em diante
+    
+    marcadores = ['*','+','x','^','v','p','o','s']
+    estilos = ['-', '--', ':', '-.']
+
+    # Criando o gráfico
+    plt.figure(figsize=(10, 6))  # Definindo o tamanho do gráfico
+
+    # Plotando as linhas do gráfico para as últimas 4 colunas
+    for i, coluna in enumerate(linhas_grafico.columns):
+        plt.plot(eixo_x, linhas_grafico[coluna], linestyle=estilos[i % len(estilos)], marker=marcadores[i % len(marcadores)], label=coluna)  # Adiciona uma linha para cada coluna
+
+
+    plt.xticks(eixo_x)
+    plt.xlabel('Número de EDs')  # Define o rótulo do eixo X
+    plt.ylabel('Consumo (em J))')  # Define o rótulo do eixo Y
+    plt.grid(True)
+    plt.legend()  # Adiciona a legenda com base nos nomes das colunas
+
+    if (cen == "true"):
+        plt.title('Consumo Energético - Ensaio 1')
+        plt.savefig(rootPath+'energia-Ensaio1.png')
+    else:
+        plt.title('Consumo Energético - PDR Médio - Ensaio 2')
+        plt.savefig(rootPath+'energia-Ensaio2.png')
+    #plt.show()  # Exibe o gráfico
+
+
+##### MISC ########
 
 # Função para salvar um DF em um arquivo JSON
 def salvarDadosEmArquivo(df, nome_arquivo):
@@ -186,9 +256,8 @@ def carregarDadosDeArquivo(nome_arquivo):
     return df
 
 
-
 def main():    
-    global dfED, dfEDCpsr
+    global dfED, dfEDCpsr, dfEnergy
 
 
     if (novaSimulacao):
@@ -201,12 +270,16 @@ def main():
     else:        # Apenas gerar os gráficos novamente
         
         dfED = carregarDadosDeArquivo(rootPath+'PDREsc-Cen1.json')
-        dfEDCpsr = carregarDadosDeArquivo(rootPath+'PDREscCpsr-Cen1.json') if modoConfirmado else None
+        dfEDCpsr = carregarDadosDeArquivo(rootPath+'PDREscCpsr-Cen1.json') if modoCpsr else None
+        dfEnergy = carregarDadosDeArquivo(rootPath+'Energy-Cen1.json') if energyModel else None
         plotarGrafico("true")
+        plotarGraficoEnergy("true") if energyModel else None
         if (len(cenarios) == 2):
             dfED = carregarDadosDeArquivo(rootPath+'PDREsc-Cen2.json')
-            dfEDCpsr = carregarDadosDeArquivo(rootPath+'PDREscCpsr-Cen2.json') if modoConfirmado else None
+            dfEDCpsr = carregarDadosDeArquivo(rootPath+'PDREscCpsr-Cen2.json') if modoCpsr else None
+            dfEnergy = carregarDadosDeArquivo(rootPath+'Energy-Cen1.json') if energyModel else None
             plotarGrafico("false")
+            plotarGraficoEnergy("false") if energyModel else None
         
 
 if __name__ == '__main__':

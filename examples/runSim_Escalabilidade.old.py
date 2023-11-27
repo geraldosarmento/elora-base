@@ -9,19 +9,21 @@ import time
 import json
 
 
+novaSimulacao = True
+modoConfirmado = True
 rootPath = "scratch/output/"
-numRep = 7
-numED = [200,400,600,800,1000]
-#numED = [600,800]
+numRep = 2
+#numED = [200,400,600,800,1000]
+numED = [600,800]
 raio = 6000
 #adrDic = {"ns3::AdrLorawan":"ADR", "ns3::AdrPlus":"ADR+"}
-adrDic = {"ns3::AdrPlus":"ADR+", "ns3::AdrCentral":"ADR-C", "ns3::AdrCentralPlus":"ADR-C+"}
+adrDic = {"ns3::AdrPlus":"ADR+", "ns3::AdrCentral":"ADR-C"}
 #adrDic = {"ns3::AdrCentral":"ADR-C", "ns3::AdrCentralPlus":"ADR-C+"}
-modoConfirmado = True
+
 
 # Lista genérica usada para testar diversos modelos dentro da simulação
-cenarios = ["true", "false"]
-#cenarios = ["true"]
+#cenarios = ["true", "false"]
+cenarios = ["true"]
 
 
 amostras = []
@@ -48,7 +50,7 @@ def executarSim():
                     print("Executando esquema:",esq," - Rodada #",rodCont," de ",len(numED)*len(adrDic)*numRep*len(cenarios))
                     print("=============================================================")
                     cmd = f"./ns3 run \"littoral  --adrType={esq} --nED={eds} --radius={raio} --mobility={cen}\" --quiet"
-                    # --confMode={cen} --baseSeed={ensCont} --EDadrEnabled={cen} --okumura={cen} --poisson={cen}
+                    # --confMode={cen} --baseSeed={ensCont} --EDadrEnabled={cen} --okumura={cen} --poisson={cen} --simTime=1200
                     # Sample: ./ns3 run "littoral --adrType=ns3::AdrPlus"
                     # exec(open('/opt/simuladores/ns-allinone-3.40-ELORA/ns-3.40/contrib/elora/examples/runSim_Escalabilidade.py').read())
                     inicio = time.time()
@@ -63,7 +65,13 @@ def executarSim():
                     atualizarDados(esq) 
                     if (modoConfirmado):
                         atualizarDadosCpsr(esq)
-        plotarGrafico(cen)  
+        plotarGrafico(cen)
+        if (cen == "true"):
+            salvarDadosEmArquivo(dfED, rootPath+'PDREsc-Cen1.json')
+            salvarDadosEmArquivo(dfEDCpsr, rootPath+'PDREscCpsr-Cen1.json') if modoConfirmado else None
+        else:
+            salvarDadosEmArquivo(dfED, rootPath+'PDREsc-Cen2.json')
+            salvarDadosEmArquivo(dfEDCpsr, rootPath+'PDREscCpsr-Cen2.json') if modoConfirmado else None       
         reiniciarDF() 
            
 
@@ -168,26 +176,38 @@ def plotarGrafico(cen):
     #plt.show()  # Exibe o gráfico
 
 
-# Função para salvar um dicionário em um arquivo JSON
-def salvarDictEmArquivo(dicionario, nome_arquivo):
-    with open(nome_arquivo, 'w') as arquivo:
-        json.dump(dicionario, arquivo)
+# Função para salvar um DF em um arquivo JSON
+def salvarDadosEmArquivo(df, nome_arquivo):
+    df.to_json(nome_arquivo, orient='records')
 
-# Função para carregar um dicionário de um arquivo JSON
-def carregarDictDeArquivo(nome_arquivo):
-    with open(nome_arquivo, 'r') as arquivo:
-        dicionario = json.load(arquivo)
-        return dicionario
+# Função para carregar um DF de um arquivo JSON
+def carregarDadosDeArquivo(nome_arquivo):
+    df = pd.read_json(nome_arquivo, orient='records')
+    return df
 
 
 
 def main():    
-    inicio = time.time()
-    executarSim()
-    fim = time.time()
-    tempo_decorrido = fim - inicio
-    tempo_decorrido /= 60
-    print(f"Tempo total de simulação: {round(tempo_decorrido,5)} min") 
+    global dfED, dfEDCpsr
+
+
+    if (novaSimulacao):
+        inicio = time.time()
+        executarSim()
+        fim = time.time()
+        tempo_decorrido = fim - inicio
+        tempo_decorrido /= 60
+        print(f"Tempo total de simulação: {round(tempo_decorrido,5)} min") 
+    else:        # Apenas gerar os gráficos novamente
+        
+        dfED = carregarDadosDeArquivo(rootPath+'PDREsc-Cen1.json')
+        dfEDCpsr = carregarDadosDeArquivo(rootPath+'PDREscCpsr-Cen1.json') if modoConfirmado else None
+        plotarGrafico("true")
+        if (len(cenarios) == 2):
+            dfED = carregarDadosDeArquivo(rootPath+'PDREsc-Cen2.json')
+            dfEDCpsr = carregarDadosDeArquivo(rootPath+'PDREscCpsr-Cen2.json') if modoConfirmado else None
+            plotarGrafico("false")
+        
 
 if __name__ == '__main__':
     main()
