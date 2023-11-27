@@ -81,8 +81,9 @@ bool energyModel = true;
 bool okumuraHataModel = false;
 bool gridBuilAlloc = true;
 bool const shadowingPropModel = true;
-bool const discPosLayout = true;
+double pathLossExp = 3.76;
 bool poissonModel = false;
+bool const discPosLayout = true;
 bool saveToFile = true;
 bool verbose = false;
 
@@ -171,6 +172,7 @@ main(int argc, char* argv[])
     cmd.AddValue("initializeSF", "Whether to initialize the SFs", initializeSF);
     cmd.AddValue("MinSpeed", "Minimum speed for mobile devices", minSpeed);
     cmd.AddValue("MaxSpeed", "Maximum speed for mobile devices", maxSpeed);
+    cmd.AddValue("pathLossExp", "Set the path loss exponent in LogDistancePropagationLossModel", pathLossExp);
   
     cmd.AddValue("MultipleGwCombiningMethod", "ns3::AdrComponent::MultipleGwCombiningMethod");
     cmd.AddValue("MultiplePacketsCombiningMethod",
@@ -261,7 +263,7 @@ main(int argc, char* argv[])
     // if no OkumuraHataModel applied, use LogDistancePropagationLossModel
     else {
         Ptr<LogDistancePropagationLossModel> loss = CreateObject<LogDistancePropagationLossModel>();
-        loss->SetPathLossExponent(3.76);
+        loss->SetPathLossExponent(pathLossExp);
         loss->SetReference(1, 7.7);
 
         Ptr<UniformRandomVariable> x = CreateObject<UniformRandomVariable>();

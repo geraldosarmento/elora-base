@@ -29,6 +29,81 @@ AdrCentral::~AdrCentral ()
 {
 }
 
+//testar
+/*
+void
+AdrCentral::AdrImplementation(uint8_t* newDataRate,
+                                uint8_t* newTxPower,
+                                Ptr<EndDeviceStatus> status)
+{
+    // Compute the maximum or median SNR, based on the boolean value historyAveraging
+    double m_SNR = 0;
+    
+    m_SNR = ImplementationCore(status);
+
+    NS_LOG_DEBUG("m_SNR = " << m_SNR);
+
+    // Get the SF used by the device
+    uint8_t currDataRate = status->GetFirstReceiveWindowDataRate();
+
+    NS_LOG_DEBUG("DR = " << (unsigned)currDataRate);
+
+    // Get the device data rate and use it to get the SNR demodulation treshold
+    double req_SNR = treshold[currDataRate];
+
+    NS_LOG_DEBUG("Required SNR = " << req_SNR);
+
+    // Get the device transmission power (dBm)
+    double transmissionPower = status->GetMac()->GetTransmissionPower();
+
+    NS_LOG_DEBUG("Transmission Power = " << transmissionPower);
+
+    // Compute the SNR margin taking into consideration the SNR of
+    // previously received packets
+    double margin_SNR = m_SNR - req_SNR - m_deviceMargin;
+
+    NS_LOG_DEBUG("Margin = " << margin_SNR);
+
+    // Number of steps to decrement the SF (thereby increasing the Data Rate)
+    // and the TP.
+    int steps = std::floor(margin_SNR / 3);
+
+    NS_LOG_DEBUG("steps = " << steps);
+
+    // If the number of steps is positive (margin_SNR is positive, so its
+    // decimal value is high) increment the data rate, if there are some
+    // leftover steps after reaching the maximum possible data rate
+    //(corresponding to the minimum SF) decrement the transmission power as
+    // well for the number of steps left.
+    // If, on the other hand, the number of steps is negative (margin_SNR is
+    // negative, so its decimal value is low) increase the transmission power
+    //(note that the SF is not incremented as this particular algorithm
+    // expects the node itself to raise its SF whenever necessary).
+    while (steps > 0 && currDataRate < max_dataRate)
+    {
+        currDataRate++;
+        steps--;
+        NS_LOG_DEBUG("Increased DR by 1");
+    }
+    while (steps > 0 && transmissionPower > min_transmissionPower)
+    {
+        transmissionPower -= 2;
+        steps--;
+        NS_LOG_DEBUG("Decreased Ptx by 2");
+    }
+    while (steps < 0 && transmissionPower < max_transmissionPower)
+    {
+        transmissionPower += 2;
+        steps++;
+        NS_LOG_DEBUG("Increased Ptx by 2");
+    }
+
+    *newDataRate = currDataRate;
+    *newTxPower = transmissionPower;
+}
+
+*/
+
 double AdrCentral::ImplementationCore(Ptr<EndDeviceStatus> status)  {
     double m_SNR = 0;
     std::vector<double> curSNR(historyRange);

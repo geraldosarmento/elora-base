@@ -2,7 +2,7 @@
 
 # Se nenhum argumento for fornecido, use o projeto padrão
 if [ $# -eq 0 ]; then
-  projeto="elora-base"
+  projeto="elora-adr"
   commit="First commit"
 else
   projeto=$1

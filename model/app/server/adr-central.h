@@ -28,6 +28,7 @@ public:
 
   
 private:
+  //void AdrImplementation(uint8_t* newDataRate, uint8_t* newTxPower, Ptr<EndDeviceStatus> status) override;
   double ImplementationCore(Ptr<EndDeviceStatus> status) override;
 
   double GetMedian(std::vector<double> values);

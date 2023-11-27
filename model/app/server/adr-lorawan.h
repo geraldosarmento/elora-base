@@ -71,7 +71,7 @@ class AdrLorawan : public NetworkControllerComponent
     void OnFailedReply(Ptr<EndDeviceStatus> status, Ptr<NetworkStatus> networkStatus) override;
 
   protected:
-    void AdrImplementation(uint8_t* newDataRate, uint8_t* newTxPower, Ptr<EndDeviceStatus> status);
+    virtual void AdrImplementation(uint8_t* newDataRate, uint8_t* newTxPower, Ptr<EndDeviceStatus> status);
 
     virtual double ImplementationCore(Ptr<EndDeviceStatus> status);
 
