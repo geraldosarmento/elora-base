@@ -9,6 +9,8 @@ else
   commit=$2
 fi
 
+# gh repo create
+
 # Restante do script
 git init
 git add .
